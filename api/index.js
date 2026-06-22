@@ -18,13 +18,23 @@ const allowedOrigins = [
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-// MongoDB connection
-try {
+// Connect to MongoDB (reuses cached connection in serverless)
+async function connectDB() {
+  if (mongoose.connection.readyState >= 1) return;
   await mongoose.connect(process.env.MONGODB_URL);
   console.log('Database Connected Successfully');
-} catch (error) {
-  console.error('Database connection failed:', error.message);
 }
+
+// Lazy connect middleware - ensures DB is connected before any route handler
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+    res.status(500).json({ message: 'Database connection failed' });
+  }
+});
 
 app.get('/', (req, res) => {
   res.send('Hello World');
