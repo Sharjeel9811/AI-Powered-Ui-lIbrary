@@ -16,13 +16,15 @@ export default function App() {
 }`;
 
     const sourceCode = code.trim() ? code : fallbackCode;
-    const exportMatch = sourceCode.match(/export default function\s+([A-Za-z0-9_]+)/);
-    const componentName = exportMatch?.[1] || 'App';
+    const defaultFnMatch = sourceCode.match(/export default function\s+([A-Za-z0-9_]+)/);
+    const exportConstMatch = sourceCode.match(/export\s+const\s+([A-Za-z0-9_]+)\s*=/);
+    const componentName = defaultFnMatch?.[1] || exportConstMatch?.[1] || 'App';
     const shouldLoadTailwind = /\bclassName\s*=|\bclass\s*=/.test(sourceCode);
     const runtimeSource = sourceCode
       .replace(/import\s+[^;]+;\s*/g, '')
       .replace(/export default function\s+([A-Za-z0-9_]+)\s*\(/, 'function $1(')
-      .replace(/export default\s+([A-Za-z0-9_]+);?/g, '');
+      .replace(/export default\s+([A-Za-z0-9_]+);?/g, '')
+      .replace(/export\s+const\s+([A-Za-z0-9_]+)\s*=\s*/, 'const $1 = ');
     const encodedSource = JSON.stringify(`${runtimeSource}\nwindow.__GeneratedComponent = ${componentName};`).replace(/</g, '\\u003c');
     const tailwindScript = shouldLoadTailwind
       ? '<script src="https://cdn.tailwindcss.com"></script>'

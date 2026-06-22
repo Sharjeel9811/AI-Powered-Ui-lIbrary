@@ -8,7 +8,7 @@ import Generate from './Pages/Generate'
 import Home from './Pages/Home'
 import { setuserData } from './Redux/UserSlice'
 
-export const ServerUrl="http://localhost:5000"
+export const ServerUrl=import.meta.env.VITE_SERVER_URL || ""
 
 
 const App = () => {
