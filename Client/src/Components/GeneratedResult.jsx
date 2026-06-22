@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { LiveProvider, LivePreview, LiveError } from 'react-live';
 
 function stripImports(src) {
@@ -29,7 +30,13 @@ const GeneratedResult = ({ code = '', title = 'Generated component', componentTy
     return `${cleaned}\nrender(<${name} />)`;
   }, [code]);
 
-  const scope = { React, useState, useEffect, useRef, useCallback, useMemo };
+  const scope = {
+    React, useState, useEffect, useRef, useCallback, useMemo,
+    require: (name) => {
+      const map = { react: React, 'react-dom': ReactDOM };
+      return map[name] || {};
+    }
+  };
 
   const copyCode = async () => {
     try {
