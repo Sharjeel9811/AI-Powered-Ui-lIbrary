@@ -1,3 +1,20 @@
+function stripImports(src) {
+  return src
+    .replace(/^[ \t]*import\s+[^;]+;\s*/gm, '')
+    .replace(/^[ \t]*import\s*\{[\s\S]*?\}\s*from\s*['"][^'"]+['"]\s*;?\s*/gm, '')
+    .replace(/^[ \t]*import\s+['"][^'"]+['"]\s*;?\s*/gm, '')
+    .replace(/^[ \t]*export\s+default\s+function\s+([A-Za-z0-9_$]+)/gm, 'function $1')
+    .replace(/^[ \t]*export\s+default\s+/gm, '')
+    .replace(/^[ \t]*export\s+const\s+/gm, 'const ')
+    .replace(/^[ \t]*export\s+/gm, '');
+}
+
+function extractName(src) {
+  const m = src.match(/(?:export\s+default\s+)?function\s+([A-Za-z0-9_$]+)/);
+  const c = src.match(/(?:export\s+)?const\s+([A-Za-z0-9_$]+)\s*=/);
+  return m?.[1] || c?.[1] || 'App';
+}
+
 import { useMemo, useState } from 'react';
 
 const GeneratedResult = ({ code = '', title = 'Generated component', componentType = '' }) => {
@@ -16,17 +33,11 @@ export default function App() {
 }`;
 
     const sourceCode = code.trim() ? code : fallbackCode;
-    const defaultFnMatch = sourceCode.match(/export default function\s+([A-Za-z0-9_]+)/);
-    const exportConstMatch = sourceCode.match(/export\s+const\s+([A-Za-z0-9_]+)\s*=/);
-    const componentName = defaultFnMatch?.[1] || exportConstMatch?.[1] || 'App';
+    const componentName = extractName(sourceCode);
     const shouldLoadTailwind = /\bclassName\s*=|\bclass\s*=/.test(sourceCode);
-    const runtimeSource = sourceCode
-      .split('\n').filter(l => !/^\s*import\b/.test(l)).join('\n')
-      .replace(/export default function\s+([A-Za-z0-9_]+)\s*\(/, 'function $1(')
-      .replace(/export default\s+([A-Za-z0-9_]+);?/g, '')
-      .replace(/export\s+const\s+([A-Za-z0-9_]+)\s*=\s*/, 'const $1 = ')
-      .replace(/^\s*export\s+/gm, '');
-    const encodedSource = JSON.stringify(`${runtimeSource}\nwindow.__GeneratedComponent = ${componentName};`).replace(/</g, '\\u003c');
+    const runtimeSource = stripImports(sourceCode);
+    const codeToExec = `${runtimeSource}\nwindow.__GeneratedComponent = ${componentName};`;
+    const encodedSource = JSON.stringify(codeToExec).replace(/</g, '\\u003c');
     const tailwindScript = shouldLoadTailwind
       ? '<script src="https://cdn.tailwindcss.com"></script>'
       : '';
@@ -48,12 +59,22 @@ export default function App() {
   </head>
   <body>
     <div id="root"></div>
+    <div id="debug" style="color:#94a3b8;padding:12px;font-size:12px;font-family:monospace;white-space:pre-wrap;display:none;"></div>
     <script>
       try {
-        var source = ${encodedSource};
-        source = source.split('\\n').filter(function(l) { return !/^\\s*import\\b/.test(l); }).join('\\n');
-        source = source.replace(/^\\s*export\\s+/gm, '');
-        var code = Babel.transform(source, { presets: ['react'] }).code;
+        var src = ${encodedSource};
+        document.getElementById('debug').textContent = '--- SOURCE ---\\n' + src + '\\n\\n';
+        src = src.replace(/^[ \\t]*import\\s+[^;]+;\\s*/gm, '');
+        src = src.replace(/^[ \\t]*import\\s*\\{[\\s\\S]*?\\}\\s*from\\s*['"][^'"]+['"]\\s*;?\\s*/gm, '');
+        src = src.replace(/^[ \\t]*import\\s+['"][^'"]+['"]\\s*;?\\s*/gm, '');
+        src = src.replace(/^[ \\t]*export\\s+default\\s+function\\s+([A-Za-z0-9_\$]+)/gm, 'function $1');
+        src = src.replace(/^[ \\t]*export\\s+default\\s+/gm, '');
+        src = src.replace(/^[ \\t]*export\\s+const\\s+/gm, 'const ');
+        src = src.replace(/^[ \\t]*export\\s+/gm, '');
+        document.getElementById('debug').textContent += '--- AFTER STRIP ---\\n' + src + '\\n\\n';
+        var code = Babel.transform(src, { presets: ['react'] }).code;
+        document.getElementById('debug').textContent += '--- BABEL ---\\n' + code + '\\n\\n';
+        document.getElementById('debug').style.display = 'block';
         var fn = new Function('React', code);
         fn(React);
         var Component = window.__GeneratedComponent || App;
@@ -62,6 +83,8 @@ export default function App() {
         );
       } catch (error) {
         document.getElementById('root').innerHTML = '<pre style="color:#fca5a5; padding:24px; white-space:pre-wrap;">' + error.message + '</pre>';
+        document.getElementById('debug').textContent += '--- ERROR ---\\n' + error.message + '\\n' + error.stack;
+        document.getElementById('debug').style.display = 'block';
       }
     </script>
   </body>
