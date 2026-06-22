@@ -232,6 +232,14 @@ OUTPUT FORMAT:
       }
     }
 
+    if (parsed?.code) {
+      parsed.code = parsed.code
+        .split('\n').filter(l => !/^\s*import\b/.test(l)).join('\n')
+        .replace(/^\s*export\s+/gm, '')
+        .replace(/export default function\s+([A-Za-z0-9_]+)\s*\(/, 'function $1(')
+        .replace(/export\s+const\s+([A-Za-z0-9_]+)\s*=\s*/, 'const $1 = ');
+    }
+
     if (user.role === 'user') {
       user.aicredits = user.aicredits - 50;
       await user.save();
