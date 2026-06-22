@@ -21,7 +21,7 @@ export default function App() {
     const componentName = defaultFnMatch?.[1] || exportConstMatch?.[1] || 'App';
     const shouldLoadTailwind = /\bclassName\s*=|\bclass\s*=/.test(sourceCode);
     const runtimeSource = sourceCode
-      .replace(/import\s+[^;]+;\s*/g, '')
+      .replace(/^import\s.*$/gm, '')
       .replace(/export default function\s+([A-Za-z0-9_]+)\s*\(/, 'function $1(')
       .replace(/export default\s+([A-Za-z0-9_]+);?/g, '')
       .replace(/export\s+const\s+([A-Za-z0-9_]+)\s*=\s*/, 'const $1 = ');
@@ -50,7 +50,7 @@ export default function App() {
     <script>
       try {
         const source = ${encodedSource};
-        const transformed = Babel.transform(source, { presets: ['react'] }).code;
+        const transformed = Babel.transform(source, { presets: ['react'] }).code.replace(/^import\s.*$/gm, '').replace(/require\([^)]+\)/g, '');
         eval(transformed);
         const Component = window.__GeneratedComponent || App;
         ReactDOM.createRoot(document.getElementById('root')).render(

@@ -42,6 +42,7 @@ OUTPUT FORMAT:
 - Inline styles ONLY. No CSS classes, no Tailwind, no styled-components.
 - All props must have default values.
 - Self-contained only. No external libraries except React and its hooks.
+- Do NOT include any import or require statements. React is already in scope.
 - No TypeScript.
 - Never use fixed positioning.
 - Use strong visual hierarchy, layered surfaces, soft gradients, glassmorphism, and subtle borders.
